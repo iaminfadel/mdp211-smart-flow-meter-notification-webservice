@@ -9,6 +9,7 @@ from google.oauth2 import service_account
 from google.auth.transport.requests import Request
 import requests
 from enum import Enum
+from typing import Dict, Optional
 
 
 # Load environment variables
