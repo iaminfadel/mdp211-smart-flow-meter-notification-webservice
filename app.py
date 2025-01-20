@@ -288,10 +288,13 @@ class FlowmeterMonitor:
         })
 
 
+cred_dict = json.loads(os.getenv('FIREBASE_CREDENTIALS'))
+
+# Initialize monitor with credentials dictionary
 monitor = FlowmeterMonitor(
-    service_account_path=None,  # We're using environment variables instead
     database_url=os.getenv('FIREBASE_DATABASE_URL'),
-    fcm_project_id=os.getenv('FIREBASE_PROJECT_ID')
+    credentials_dict=cred_dict,
+    project_id=os.getenv('FIREBASE_PROJECT_ID')
 )
 
 @app.route('/health', methods=['GET'])
