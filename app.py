@@ -35,17 +35,21 @@ class SeverityLevel(Enum):
     HIGH = "high"
 
 class FCMNotifier:
-    def __init__(self, service_account_path, project_id):
+    def __init__(self, credentials_dict, project_id):
         """
-        Initialize FCM notifier with service account credentials
+        Initialize FCM notifier with service account credentials from dictionary
+        
+        Args:
+            credentials_dict (dict): Service account credentials as a dictionary
+            project_id (str): Firebase project ID
         """
         self.project_id = project_id
         self.base_url = f'https://fcm.googleapis.com/v1/projects/{project_id}/messages:send'
         
         try:
-            # Load credentials explicitly
-            self.credentials = service_account.Credentials.from_service_account_file(
-                service_account_path,
+            # Create credentials object from dictionary
+            self.credentials = service_account.Credentials.from_service_account_info(
+                credentials_dict,
                 scopes=['https://www.googleapis.com/auth/firebase.messaging']
             )
             print("Credentials loaded successfully")
@@ -56,7 +60,6 @@ class FCMNotifier:
     def get_access_token(self):
         """Get OAuth 2.0 access token"""
         try:
-            # Create a proper request object and refresh credentials
             request = Request()
             self.credentials.refresh(request)
             token = self.credentials.token
@@ -127,15 +130,19 @@ class FCMNotifier:
             print(f"Unexpected error: {e}")
             raise
 
+# And in your FlowmeterMonitor class initialization:
 class FlowmeterMonitor:
-    def __init__(self, service_account_path: str, database_url: str, fcm_project_id: str):
+    def __init__(self, database_url: str, credentials_dict: dict, project_id: str):
         # Initialize Firebase
-        cred = credentials.Certificate(service_account_path)
-        firebase_admin.initialize_app(cred, {
-            'databaseURL': database_url
-        })
+        if not firebase_admin._apps:  # Only initialize if not already initialized
+            cred = credentials.Certificate(credentials_dict)
+            firebase_admin.initialize_app(cred, {
+                'databaseURL': database_url
+            })
         self.db = db.reference()
-        self.fcm_client = FCMNotifier(service_account_path, fcm_project_id)
+        
+        # Initialize FCM client with credentials dictionary
+        self.fcm_client = FCMNotifier(credentials_dict, project_id)
 
     def update_readings(self, serial_number: str, flowrate: Optional[float] = None,
                        temperature: Optional[float] = None, pressure: Optional[float] = None):
