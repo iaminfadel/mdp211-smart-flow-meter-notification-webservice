@@ -168,7 +168,7 @@ class FlowmeterMonitor:
         if humidity is not None:
             updates['humidity'] = humidity
         
-        updates['lastUpdated'] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        updates['lastUpdated'] = datetime.now(datetime.timezone.utc).isoformat()
         readings_ref.update(updates)
 
         # Add to historical readings
