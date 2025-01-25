@@ -145,7 +145,8 @@ class FlowmeterMonitor:
         self.fcm_client = FCMNotifier(credentials_dict, project_id)
 
     def update_readings(self, serial_number: str, flowrate: Optional[float] = None,
-                       temperature: Optional[float] = None, pressure: Optional[float] = None):
+                       temperature: Optional[float] = None, pressure: Optional[float] = None,
+                          humidity: Optional[float] = None):
         """Update flowmeter readings and check for warnings"""
         
         # Get flowmeter reference
@@ -164,9 +165,14 @@ class FlowmeterMonitor:
             updates['temperature'] = temperature
         if pressure is not None:
             updates['pressure'] = pressure
+        if humidity is not None:
+            updates['humidity'] = humidity
         
         updates['lastUpdated'] = datetime.utcnow().isoformat()
         readings_ref.update(updates)
+
+        # Add to historical readings
+        historical_ref = self.db.child('flowmeters').child(flowmeter_id).child('logs').push(updates)
         
         # Get associated users
         users_ref = self.db.child('flowmeters').child(flowmeter_id).child('users').get()
