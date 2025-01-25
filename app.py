@@ -211,14 +211,20 @@ class FlowmeterMonitor:
         triggered_severity = None
         triggered_threshold = None
         
-        for severity, threshold in sorted(thresholds.items(), 
-                                       key=lambda x: severity_order.get(x[0], 0),
-                                       reverse=True):
-            if value > threshold:
-                triggered_severity = severity
-                triggered_threshold = threshold
-                break
-        
+        # for severity, threshold in sorted(thresholds.items(), 
+        #                                key=lambda x: severity_order.get(x[0], 0),
+        #                                reverse=True):
+        #     if value > threshold:
+        #         triggered_severity = severity
+        #         triggered_threshold = threshold
+        #         break
+        if value > thresholds['high'] and thresholds['high'] != 0:
+            triggered_severity = 'high'
+            triggered_threshold = thresholds['high']
+        elif value < thresholds['low'] and thresholds['low'] != 0:
+            triggered_severity = 'low'
+            triggered_threshold = thresholds['low']
+
         if triggered_severity:
             # Create warning
             warning_data = {
