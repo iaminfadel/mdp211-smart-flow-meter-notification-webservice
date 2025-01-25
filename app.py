@@ -320,7 +320,8 @@ def update_readings():
             serial_number=data['serial_number'],
             flowrate=data.get('flowrate'),
             temperature=data.get('temperature'),
-            pressure=data.get('pressure')
+            pressure=data.get('pressure'),
+            humidity=data.get('humidity')
         )
         
         return jsonify({'status': 'success'}), 200
