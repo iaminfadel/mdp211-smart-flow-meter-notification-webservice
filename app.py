@@ -4,7 +4,7 @@ import firebase_admin
 import os
 from dotenv import load_dotenv
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from google.oauth2 import service_account
 from google.auth.transport.requests import Request
 import requests
@@ -168,7 +168,7 @@ class FlowmeterMonitor:
         if humidity is not None:
             updates['humidity'] = humidity
         
-        updates['lastUpdated'] = datetime.now(datetime.timezone.utc).isoformat()
+        updates['lastUpdated'] = datetime.now(timezone.utc).isoformat()
         readings_ref.update(updates)
 
         # Add to historical readings
