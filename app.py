@@ -198,58 +198,73 @@ class FlowmeterMonitor:
                 )
 
     def _check_single_threshold(self, user_id: str, flowmeter_id: str, 
-                              warning_type: WarningType, value: float, 
-                              thresholds: Dict[str, float]):
-        """Check a single reading against its thresholds"""
-        # Check thresholds from highest to lowest
-        severity_order = {
-            'high': 3,
-            'medium': 2,
-            'low': 1
-        }
-        
-        triggered_severity = None
-        triggered_threshold = None
-        
-        # for severity, threshold in sorted(thresholds.items(), 
-        #                                key=lambda x: severity_order.get(x[0], 0),
-        #                                reverse=True):
-        #     if value > threshold:
-        #         triggered_severity = severity
-        #         triggered_threshold = threshold
-        #         break
+                            warning_type: WarningType, value: float, 
+                            thresholds: Dict[str, float]):
+        """Check a single reading against its thresholds with cooldown logic"""
+        # Check if the value exceeds the threshold
         if value > thresholds['high'] and thresholds['high'] != 0:
             triggered_severity = 'high'
             triggered_threshold = thresholds['high']
         elif value < thresholds['low'] and thresholds['low'] != 0:
             triggered_severity = 'low'
             triggered_threshold = thresholds['low']
+        else:
+            # If the value is normal, no action is needed
+            return
 
-        if triggered_severity:
-            # Create warning
-            warning_data = {
-                'userId': user_id,
-                'type': warning_type.value,
-                'severity': triggered_severity,
-                'reading': value,
-                'threshold': triggered_threshold,
-                'timestamp': datetime.utcnow().isoformat(),
-                'acknowledged': False,
-                'acknowledgedAt': None
-            }
-            
-            # Add warning to database
-            warning_ref = self.db.child('warnings').child(flowmeter_id).push(warning_data)
-            warning_id = warning_ref.key
-            
-            # Add to user warnings index
-            self.db.child('userWarnings').child(user_id).child(warning_id).set(True)
-            
-            # Send notifications
-            self._send_warning_notification(
-                user_id, flowmeter_id, warning_type, 
-                triggered_severity, value, triggered_threshold
-            )
+        # Check for recent warnings of the same type
+        recent_warning = self._get_recent_warning(flowmeter_id, warning_type)
+
+        if recent_warning:
+            # A recent warning exists, check if the cooldown period has passed
+            last_warning_time = datetime.fromisoformat(recent_warning['timestamp'])
+            cooldown_period = timedelta(minutes=1)  # Adjust this to 1 or 2 minutes
+            current_time = datetime.utcnow()
+
+            if current_time - last_warning_time < cooldown_period:
+                # Cooldown period has not passed, skip sending a new notification
+                return
+
+        # Create warning
+        warning_data = {
+            'userId': user_id,
+            'type': warning_type.value,
+            'severity': triggered_severity,
+            'reading': value,
+            'threshold': triggered_threshold,
+            'timestamp': datetime.utcnow().isoformat(),
+            'acknowledged': False,
+            'acknowledgedAt': None
+        }
+
+        # Add warning to database
+        warning_ref = self.db.child('warnings').child(flowmeter_id).push(warning_data)
+        warning_id = warning_ref.key
+
+        # Add to user warnings index
+        self.db.child('userWarnings').child(user_id).child(warning_id).set(True)
+
+        # Send notifications
+        self._send_warning_notification(
+            user_id, flowmeter_id, warning_type, 
+            triggered_severity, value, triggered_threshold
+        )
+
+    def _get_recent_warning(self, flowmeter_id: str, warning_type: WarningType):
+        """Get the most recent warning of the same type for the flowmeter"""
+        warnings_ref = self.db.child('warnings').child(flowmeter_id).get()
+        if not warnings_ref:
+            return None
+
+        # Find the most recent warning of the same type
+        recent_warning = None
+        for warning_id, warning_data in warnings_ref.items():
+            if warning_data['type'] == warning_type.value:
+                warning_time = datetime.fromisoformat(warning_data['timestamp'])
+                if recent_warning is None or warning_time > datetime.fromisoformat(recent_warning['timestamp']):
+                    recent_warning = warning_data
+
+        return recent_warning
 
     def _send_warning_notification(self, user_id: str, flowmeter_id: str,
                                  warning_type: WarningType, severity: str,
