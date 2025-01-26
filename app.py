@@ -218,10 +218,9 @@ class FlowmeterMonitor:
         if recent_warning:
             # A recent warning exists, check if the cooldown period has passed
             last_warning_time = datetime.fromisoformat(recent_warning['timestamp'])
-            cooldown_period = timedelta(minutes=1)  # Adjust this to 1 or 2 minutes
-            current_time = datetime.utcnow()
+            current_time = datetime.now(timezone.utc)
 
-            if current_time - last_warning_time < cooldown_period:
+            if (current_time - last_warning_time).total_seconds() < 30:
                 # Cooldown period has not passed, skip sending a new notification
                 return
 
