@@ -231,7 +231,7 @@ class FlowmeterMonitor:
             'severity': triggered_severity,
             'reading': value,
             'threshold': triggered_threshold,
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'acknowledged': False,
             'acknowledgedAt': None
         }
@@ -291,7 +291,7 @@ class FlowmeterMonitor:
                                 'flowmeter_id': flowmeter_id,
                                 'reading': str(value),
                                 'threshold': str(threshold),
-                                'timestamp': datetime.utcnow().isoformat()
+                                'timestamp': datetime.now(timezone.utc).isoformat()
                             }
                         )
                     except Exception as e:
@@ -310,7 +310,7 @@ class FlowmeterMonitor:
             
         warning_ref.update({
             'acknowledged': True,
-            'acknowledgedAt': datetime.utcnow().isoformat()
+            'acknowledgedAt': datetime.now(timezone.utc).isoformat()
         })
 
 
