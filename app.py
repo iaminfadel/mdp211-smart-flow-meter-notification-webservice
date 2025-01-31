@@ -145,8 +145,8 @@ class FlowmeterMonitor:
         self.fcm_client = FCMNotifier(credentials_dict, project_id)
 
     def update_readings(self, serial_number: str, flowrate: Optional[float] = None,
-                       temperature: Optional[float] = None, pressure: Optional[float] = None,
-                          humidity: Optional[float] = None):
+                        temperature: Optional[float] = None, pressure: Optional[float] = None,
+                        rotorRPM: Optional[float] = None):
         """Update flowmeter readings and check for warnings"""
         
         # Get flowmeter reference
@@ -165,8 +165,8 @@ class FlowmeterMonitor:
             updates['temperature'] = temperature
         if pressure is not None:
             updates['pressure'] = pressure
-        if humidity is not None:
-            updates['humidity'] = humidity
+        if rotorRPM is not None:
+            updates['rotorRPM'] = rotorRPM
         
         updates['lastUpdated'] = datetime.now(timezone.utc).isoformat()
         readings_ref.update(updates)
@@ -320,7 +320,7 @@ def update_readings():
             flowrate=data.get('flowrate'),
             temperature=data.get('temperature'),
             pressure=data.get('pressure'),
-            humidity=data.get('humidity')
+            rotorRPM=data.get('rotorRPM')
         )
         
         return jsonify({'status': 'success'}), 200

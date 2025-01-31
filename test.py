@@ -1,7 +1,7 @@
 import requests
 import json
 
-jsonData='{"serial_number": "99", "flowrate": 50.0, "temperature": 25, "pressure": 50}'
+jsonData='{"serial_number": "99", "flowrate": 50.0, "temperature": 25, "pressure": 50, "rpm": 100}'
 # Update readings
 response = requests.post(
     'https://mdp211-smart-flow-meter-notification.onrender.com/update-readings',
