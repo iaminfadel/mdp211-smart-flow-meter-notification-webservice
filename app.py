@@ -168,7 +168,7 @@ class FlowmeterMonitor:
         if rotorRPM is not None:
             updates['rotorRPM'] = rotorRPM
         
-        updates['lastUpdated'] = datetime.now(timezone.utc).isoformat()
+        updates['lastUpdated'] = datetime.now(timezone.utc)
         readings_ref.update(updates)
 
         # Add to historical readings
