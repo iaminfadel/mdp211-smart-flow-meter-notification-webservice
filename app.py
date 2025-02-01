@@ -166,7 +166,7 @@ class FlowmeterMonitor:
         if rotorRPM is not None:
             updates['rotorRPM'] = rotorRPM
         # Add last updated timestamp as UTC milliseconds
-        updates['lastUpdated'] = datetime.now(timezone.utc).timestamp()
+        updates['lastUpdated'] = datetime.now(timezone.utc).timestamp() - 60
         readings_ref.update(updates)
 
         # Add to historical readings
