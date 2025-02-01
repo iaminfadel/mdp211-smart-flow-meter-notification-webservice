@@ -331,6 +331,26 @@ monitor = FlowmeterMonitor(
 def health_check():
     return jsonify({'status': 'healthy'}), 200
 
+@app.route('/getFlowFactor', methods=['POST'])
+def getFlowFactor():
+    try:
+        data = request.get_json()
+        required_fields = ['serial_number']
+        if not all(field in data for field in required_fields):
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        # Get flow factor
+        flowmeter_ref = monitor.db.child('flowmeters').order_by_child('serialNumber').equal_to(data['serial_number']).get()
+        if not flowmeter_ref:
+            return jsonify({'error': 'Flowmeter not found'}), 404
+
+        flowmeter_id = list(flowmeter_ref.keys())[0]
+        flow_factor = monitor.db.child('flowmeters').child(flowmeter_id).child('flowFactor').get()
+        
+        return jsonify({'flow_factor': flow_factor}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/update-readings', methods=['POST'])
 def update_readings():
     try:
