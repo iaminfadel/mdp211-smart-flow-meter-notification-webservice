@@ -11,7 +11,6 @@ import requests
 from enum import Enum
 from typing import Dict, Optional
 
-
 # Load environment variables
 load_dotenv()
 
@@ -130,7 +129,6 @@ class FCMNotifier:
             print(f"Unexpected error: {e}")
             raise
 
-# And in your FlowmeterMonitor class initialization:
 class FlowmeterMonitor:
     def __init__(self, database_url: str, credentials_dict: dict, project_id: str):
         # Initialize Firebase
@@ -202,12 +200,6 @@ class FlowmeterMonitor:
                               thresholds: Dict[str, float]):
         """Check a single reading against its thresholds"""
         # Check thresholds from highest to lowest
-        severity_order = {
-            'high': 3,
-            'medium': 2,
-            'low': 1
-        }
-        
         triggered_severity = None
         triggered_threshold = None
         
@@ -219,30 +211,65 @@ class FlowmeterMonitor:
             triggered_threshold = thresholds['low']
 
         if triggered_severity:
-            # Create warning
-            warning_data = {
-                'userId': user_id,
-                'type': warning_type.value,
-                'severity': triggered_severity,
-                'reading': value,
-                'threshold': triggered_threshold,
-                'timestamp': datetime.utcnow().isoformat(),
-                'acknowledged': False,
-                'acknowledgedAt': None
-            }
+            # Check if there is already an active warning for this type and severity
+            active_warning = self._get_active_warning(user_id, flowmeter_id, warning_type, triggered_severity)
             
-            # Add warning to database
-            warning_ref = self.db.child('warnings').child(flowmeter_id).push(warning_data)
-            warning_id = warning_ref.key
-            
-            # Add to user warnings index
-            self.db.child('userWarnings').child(user_id).child(warning_id).set(True)
-            
-            # Send notifications
-            self._send_warning_notification(
-                user_id, flowmeter_id, warning_type, 
-                triggered_severity, value, triggered_threshold
-            )
+            if not active_warning:
+                # Create warning
+                warning_data = {
+                    'userId': user_id,
+                    'type': warning_type.value,
+                    'severity': triggered_severity,
+                    'reading': value,
+                    'threshold': triggered_threshold,
+                    'timestamp': datetime.utcnow().isoformat(),
+                    'acknowledged': False,
+                    'acknowledgedAt': None,
+                    'active': True  # Mark the warning as active
+                }
+                
+                # Add warning to database
+                warning_ref = self.db.child('warnings').child(flowmeter_id).push(warning_data)
+                warning_id = warning_ref.key
+                
+                # Add to user warnings index
+                self.db.child('userWarnings').child(user_id).child(warning_id).set(True)
+                
+                # Send notifications
+                self._send_warning_notification(
+                    user_id, flowmeter_id, warning_type, 
+                    triggered_severity, value, triggered_threshold
+                )
+        else:
+            # If the value is within the threshold, deactivate any active warnings for this type
+            self._deactivate_warnings(user_id, flowmeter_id, warning_type)
+
+    def _get_active_warning(self, user_id: str, flowmeter_id: str, 
+                           warning_type: WarningType, severity: str) -> Optional[dict]:
+        """
+        Check if there is an active warning for the given type and severity.
+        """
+        warnings = self.db.child('warnings').child(flowmeter_id).get()
+        if warnings:
+            for warning_id, warning in warnings.items():
+                if (warning['userId'] == user_id and
+                    warning['type'] == warning_type.value and
+                    warning['severity'] == severity and
+                    warning.get('active', False)):
+                    return warning
+        return None
+
+    def _deactivate_warnings(self, user_id: str, flowmeter_id: str, warning_type: WarningType):
+        """
+        Deactivate all active warnings for the given type.
+        """
+        warnings = self.db.child('warnings').child(flowmeter_id).get()
+        if warnings:
+            for warning_id, warning in warnings.items():
+                if (warning['userId'] == user_id and
+                    warning['type'] == warning_type.value and
+                    warning.get('active', False)):
+                    self.db.child('warnings').child(flowmeter_id).child(warning_id).update({'active': False})
 
     def _send_warning_notification(self, user_id: str, flowmeter_id: str,
                                  warning_type: WarningType, severity: str,
@@ -289,11 +316,9 @@ class FlowmeterMonitor:
             
         warning_ref.update({
             'acknowledged': True,
-            'acknowledgedAt': datetime.utcnow().isoformat()
+            'acknowledgedAt': datetime.utcnow().isoformat(),
+            'active': False  # Mark the warning as inactive
         })
-
-
-cred_dict = json.loads(os.getenv('FIREBASE_CREDENTIALS'))
 
 # Initialize monitor with credentials dictionary
 monitor = FlowmeterMonitor(
