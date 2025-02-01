@@ -345,9 +345,9 @@ def getFlowFactor():
             return jsonify({'error': 'Flowmeter not found'}), 404
 
         flowmeter_id = list(flowmeter_ref.keys())[0]
-        flow_factor = monitor.db.child('flowmeters').child(flowmeter_id).child('flowFactor').get()
-        
-        return jsonify({'flow_factor': flow_factor}), 200
+        flow_factor = monitor.db.child('flowmeters').child(flowmeter_id).child('flow_factor').get()
+        flow_offset = monitor.db.child('flowmeters').child(flowmeter_id).child('flow_offset').get()
+        return jsonify({'flow_factor': flow_factor, 'flow_offset': flow_offset}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
